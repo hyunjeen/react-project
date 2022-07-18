@@ -7,12 +7,51 @@ const defaultCartState = {
 };
 
 const cartReducer = (state, action) => {
+  let updatedItems = "";
+  let updatedTotalAmount = "";
+
   if (action.type === "ADD") {
-    const updatedItem = state.items.concat(action.item);
-    const updatedTotalAmount =
+    const existingCartIndex = state.items.findIndex((item) => {
+      return item.id === action.item.id;
+    });
+    const existingCartItem = state.items[existingCartIndex];
+
+    if (existingCartItem) {
+      const updatedItem = {
+        ...existingCartItem,
+        amount: existingCartItem.amount + action.item.amount,
+      };
+      updatedItems = [...state.items];
+      updatedItems[existingCartIndex] = updatedItem;
+    } else {
+      updatedItems = state.items.concat(action.item);
+    }
+    updatedTotalAmount =
       state.totalAmount + action.item.price * action.item.amount;
 
-    return { items: updatedItem, totalAmount: updatedTotalAmount };
+    return { items: updatedItems, totalAmount: updatedTotalAmount };
+  }
+
+  if (action.type === "REMOVE") {
+    const existingCartIndex = state.items.findIndex((item) => {
+      return item.id === action.id;
+    });
+    const existingCartItem = state.items[existingCartIndex];
+
+    updatedTotalAmount = state.totalAmount - existingCartItem.price;
+    if (existingCartItem.amount === 1) {
+      updatedItems = state.items.filter((item) => {
+        return item.id !== action.id;
+      });
+    } else {
+      const updatedItem = {
+        ...existingCartItem,
+        amount: existingCartItem.amount - 1,
+      };
+      updatedItems = [...state.items];
+      updatedItems[existingCartIndex] = updatedItem;
+    }
+    return { items: updatedItems, totalAmount: updatedTotalAmount };
   }
 
   return defaultCartState;
@@ -24,10 +63,12 @@ const CartProvider = (props) => {
   const addItemToCartHandler = (item) => {
     dispatch({ type: "ADD", item: item });
   };
-  const removeItemFromCartHandler = (id) => {};
+  const removeItemFromCartHandler = (id) => {
+    dispatch({ type: "REMOVE", id: id });
+  };
 
   const cartContext = {
-    item: cartState.items,
+    items: cartState.items,
     totalAmount: cartState.totalAmount,
     addItem: addItemToCartHandler,
     removeItem: removeItemFromCartHandler,
